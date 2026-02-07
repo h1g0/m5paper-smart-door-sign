@@ -1,0 +1,11 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+const char *SSID = "YOUR_WIFI_SSID";
+const char *PASS = "YOUR_WIFI_PASS";
+
+const char *GAS_URL = "YOUR_GAS_URL";
+
+const int SLEEP_MIN = 10;
+
+#endif
