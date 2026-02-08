@@ -1,11 +1,23 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// ==========================================
+// Configuration Area
+// ==========================================
+
+// WiFi Configuration
 const char *SSID = "YOUR_WIFI_SSID";
 const char *PASS = "YOUR_WIFI_PASS";
 
+// GAS Configuration
 const char *GAS_URL = "YOUR_GAS_URL";
 
+// NTP Configuration
+const char* NTP_SERVER = "pool.ntp.org";
+const long GMT_OFFSET_SEC = 9 * 3600; // Japan Standard Time (GMT+9). Change as needed.
+const int DAYLIGHT_OFFSET_SEC = 0;
+
+// Update interval (minutes)
 const int SLEEP_MIN = 10;
 
 #endif

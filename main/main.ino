@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 
 #include "config.h"
 
@@ -29,9 +30,12 @@ void setup()
     }
   }
 
-  String statusText = fetchStatus();
+  configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
 
-  drawStatus(statusText);
+  String statusText = fetchStatus();
+  String updateDateTime = getUpdateDateTimeString();
+
+  drawStatus(statusText, updateDateTime);
 
   shutdownDevice();
 }
@@ -67,7 +71,21 @@ String fetchStatus()
   return result;
 }
 
-void drawStatus(String text)
+String getUpdateDateTimeString()
+{
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo, 5000))
+  {
+    char buf[20];
+    if (strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &timeinfo))
+    {
+      return String(buf);
+    }
+  }
+  return String("Unknown");
+}
+
+void drawStatus(String text, String updateDateTime)
 {
   M5.Display.startWrite();
   M5.Display.clear(TFT_WHITE); // Fill with white
@@ -80,9 +98,30 @@ void drawStatus(String text)
   M5.Display.setTextSize(8);
   M5.Display.drawString(text, x, y);
 
+  drawFooter(updateDateTime);
+
   M5.Display.endWrite();
 
   delay(2000);
+}
+
+void drawFooter(String updateDateTime)
+{
+  int margin = 8;
+  int right = M5.Display.width() - margin;
+  int bottom = M5.Display.height() - margin;
+  int battery = M5.Power.getBatteryLevel();
+
+  M5.Display.setFont(&fonts::efontJA_24);
+  M5.Display.setTextSize(1);
+  M5.Display.setTextDatum(bottom_right);
+
+  String line1 = String("Updated: ") + updateDateTime;
+  String line2 = String("Battery: ") + String(battery) + "%";
+  int lineHeight = M5.Display.fontHeight();
+
+  M5.Display.drawString(line2, right, bottom);
+  M5.Display.drawString(line1, right, bottom - lineHeight - 2);
 }
 
 void shutdownDevice()
