@@ -6,6 +6,32 @@
 
 #include "config.h"
 
+namespace
+{
+  struct Rect
+  {
+    int x;
+    int y;
+    int w;
+    int h;
+  };
+
+  const int kPowerButtonMargin = 8;
+  const int kPowerButtonWidth = 72;
+  const int kPowerButtonHeight = 36;
+  const uint32_t kPowerTouchTimeoutMs = 10000;
+
+  Rect powerButtonRect()
+  {
+    Rect r;
+    r.x = M5.Display.width() - kPowerButtonMargin - kPowerButtonWidth;
+    r.y = kPowerButtonMargin;
+    r.w = kPowerButtonWidth;
+    r.h = kPowerButtonHeight;
+    return r;
+  }
+}
+
 void setup()
 {
   auto cfg = M5.config();
@@ -37,7 +63,10 @@ void setup()
 
   drawStatus(statusText, updateDateTime);
 
-  shutdownDevice();
+  if (!waitForPowerOffTouch(kPowerTouchTimeoutMs))
+  {
+    shutdownDevice();
+  }
 }
 
 void loop()
@@ -99,6 +128,7 @@ void drawStatus(String text, String updateDateTime)
   M5.Display.drawString(text, x, y);
 
   drawFooter(updateDateTime);
+  drawPowerButton();
 
   M5.Display.endWrite();
 
@@ -122,6 +152,60 @@ void drawFooter(String updateDateTime)
 
   M5.Display.drawString(line2, right, bottom);
   M5.Display.drawString(line1, right, bottom - lineHeight - 2);
+}
+
+void drawPowerButton()
+{
+  Rect r = powerButtonRect();
+
+  M5.Display.drawRoundRect(r.x, r.y, r.w, r.h, 6, TFT_BLACK);
+  M5.Display.setTextDatum(middle_center);
+  M5.Display.setTextSize(1);
+  M5.Display.drawString("OFF", r.x + r.w / 2, r.y + r.h / 2);
+}
+
+bool waitForPowerOffTouch(uint32_t timeoutMs)
+{
+  uint32_t start = millis();
+  Rect r = powerButtonRect();
+
+  while (millis() - start < timeoutMs)
+  {
+    M5.update();
+    auto detail = M5.Touch.getDetail();
+    if (detail.wasPressed())
+    {
+      if (detail.x >= r.x && detail.x <= (r.x + r.w) &&
+          detail.y >= r.y && detail.y <= (r.y + r.h))
+      {
+        showPowerOffScreen();
+        powerOffDevice();
+        return true;
+      }
+    }
+    delay(20);
+  }
+  return false;
+}
+
+void showPowerOffScreen()
+{
+  M5.Display.startWrite();
+  M5.Display.clear(TFT_WHITE);
+  M5.Display.setTextColor(TFT_BLACK, TFT_WHITE);
+  M5.Display.setFont(&fonts::efontJA_24);
+  M5.Display.setTextDatum(middle_center);
+  M5.Display.setTextSize(3);
+  M5.Display.drawString("Power off", M5.Display.width() / 2, M5.Display.height() / 2);
+  M5.Display.endWrite();
+  delay(500);
+}
+
+void powerOffDevice()
+{
+  WiFi.disconnect(true);
+  M5.Power.powerOff();
+  M5.Power.deepSleep();
 }
 
 void shutdownDevice()
