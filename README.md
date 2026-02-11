@@ -37,12 +37,22 @@ An ultra-low power, E-ink room status display for your home office. Remotely upd
 2. Create a `config.h` file in the same tab and fill in your credentials:
 
 ```cpp
-const char* SSID = "YOUR_WIFI_SSID";
-const char* PASS = "YOUR_WIFI_PASSWORD";
-const char* GAS_URL = "YOUR_GAS_WEB_APP_URL";
-const int SLEEP_MIN = 10;
+// WiFi Configuration
+const char *SSID = "YOUR_WIFI_SSID";
+const char *PASS = "YOUR_WIFI_PASS";
 
+// GAS Configuration
+const char *GAS_URL = "YOUR_GAS_URL";
+
+// NTP Configuration
+const char* NTP_SERVER = "pool.ntp.org";
+const long GMT_OFFSET_SEC = 9 * 3600; // Japan Standard Time (GMT+9). Change as needed.
+const int DAYLIGHT_OFFSET_SEC = 0;
+
+// Update interval (minutes)
+const int SLEEP_MIN = 10;
 ```
+(cf. `config.h.example`)
 
 1. Install dependencies: `M5Unified`, `M5GFX`, and `ArduinoJson`.
 2. Upload the code to your M5Paper.
