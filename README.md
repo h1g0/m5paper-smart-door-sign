@@ -52,6 +52,7 @@ const int DAYLIGHT_OFFSET_SEC = 0;
 // Update interval (minutes)
 const int SLEEP_MIN = 10;
 ```
+
 (cf. `config.h.example`)
 
 1. Install dependencies: `M5Unified`, `M5GFX`, and `ArduinoJson`.
@@ -61,7 +62,9 @@ const int SLEEP_MIN = 10;
 
 * The display will update every `SLEEP_MIN` minutes.
 * To change the message, simply edit cell **A1** in your Google Sheet.
-* The device uses `M5.shutdown()` to minimize power consumption between updates.
+* The device uses `M5.Power.timerSleep()` to minimize power consumption between updates.
+* Touch the "off" button in the top-right corner within 10 seconds of powering on or screen update to enter indefinite power-off mode.
+  * To restart the device, press the power button on the M5Paper.
 
 ## License
 
