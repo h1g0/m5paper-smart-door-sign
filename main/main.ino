@@ -19,7 +19,8 @@ namespace
   const int kPowerButtonMargin = 8;
   const int kPowerButtonWidth = 72;
   const int kPowerButtonHeight = 36;
-  const uint32_t kPowerTouchTimeoutMs = 10000;
+  const uint32_t kWifiConnectTimeoutMs = 10000;
+  const uint32_t kWifiDotIntervalMs = 500;
 
   Rect powerButtonRect()
   {
@@ -41,19 +42,45 @@ void setup()
   M5.Display.setTextSize(1);
 
   M5.Display.setFont(&fonts::efontJA_24);
-
-  M5.Display.print("Connecting to WiFi...");
   WiFi.begin(SSID, PASS);
-  int timeout = 0;
+
+  M5.Display.startWrite();
+  M5.Display.clear(TFT_WHITE);
+  M5.Display.setTextColor(TFT_BLACK, TFT_WHITE);
+  M5.Display.setTextDatum(top_left);
+  M5.Display.drawString("Connecting to WiFi", 8, 8);
+  drawPowerButton();
+  M5.Display.endWrite();
+
+  uint32_t start = millis();
+  uint32_t lastDot = start;
+  int dotCount = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
-    M5.Display.print(".");
-    timeout++;
-    if (timeout > 20)
-    { // Give up and sleep if not connected within 10 seconds
+    M5.update();
+    if (isPowerButtonPressed())
+    {
+      showPowerOffScreen();
+      powerOffDevice();
+    }
+
+    uint32_t now = millis();
+    if (now - lastDot >= kWifiDotIntervalMs)
+    {
+      if (dotCount < 20)
+      {
+        M5.Display.drawString(".", 8 + 14 * dotCount, 40);
+        dotCount++;
+      }
+      lastDot = now;
+    }
+
+    if (now - start > kWifiConnectTimeoutMs)
+    { // Give up and sleep if not connected within 10 seconds.
       shutdownDevice();
     }
+
+    delay(20);
   }
 
   configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
@@ -62,11 +89,7 @@ void setup()
   String updateDateTime = getUpdateDateTimeString();
 
   drawStatus(statusText, updateDateTime);
-
-  if (!waitForPowerOffTouch(kPowerTouchTimeoutMs))
-  {
-    shutdownDevice();
-  }
+  shutdownDevice();
 }
 
 void loop()
@@ -128,11 +151,9 @@ void drawStatus(String text, String updateDateTime)
   M5.Display.drawString(text, x, y);
 
   drawFooter(updateDateTime);
-  drawPowerButton();
 
   M5.Display.endWrite();
 
-  delay(2000);
 }
 
 void drawFooter(String updateDateTime)
@@ -164,28 +185,17 @@ void drawPowerButton()
   M5.Display.drawString("OFF", r.x + r.w / 2, r.y + r.h / 2);
 }
 
-bool waitForPowerOffTouch(uint32_t timeoutMs)
+bool isPowerButtonPressed()
 {
-  uint32_t start = millis();
   Rect r = powerButtonRect();
-
-  while (millis() - start < timeoutMs)
+  auto detail = M5.Touch.getDetail();
+  if (!detail.wasPressed())
   {
-    M5.update();
-    auto detail = M5.Touch.getDetail();
-    if (detail.wasPressed())
-    {
-      if (detail.x >= r.x && detail.x <= (r.x + r.w) &&
-          detail.y >= r.y && detail.y <= (r.y + r.h))
-      {
-        showPowerOffScreen();
-        powerOffDevice();
-        return true;
-      }
-    }
-    delay(20);
+    return false;
   }
-  return false;
+
+  return detail.x >= r.x && detail.x <= (r.x + r.w) &&
+         detail.y >= r.y && detail.y <= (r.y + r.h);
 }
 
 void showPowerOffScreen()
