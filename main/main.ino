@@ -19,6 +19,7 @@ namespace
   const int kPowerButtonMargin = 8;
   const int kPowerButtonWidth = 72;
   const int kPowerButtonHeight = 36;
+  const uint32_t kWifiScreenMinShowMs = 1000;
   const uint32_t kWifiConnectTimeoutMs = 10000;
   const uint32_t kWifiDotIntervalMs = 500;
 
@@ -55,7 +56,7 @@ void setup()
   uint32_t start = millis();
   uint32_t lastDot = start;
   int dotCount = 0;
-  while (WiFi.status() != WL_CONNECTED)
+  while (true)
   {
     M5.update();
     if (isPowerButtonPressed())
@@ -80,15 +81,24 @@ void setup()
       shutdownDevice();
     }
 
+    if (WiFi.status() == WL_CONNECTED && now - start >= kWifiScreenMinShowMs)
+    {
+      break;
+    }
+
     delay(20);
   }
 
   configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
 
-  String statusText = fetchStatus();
+  String mainText;
+  int mainSize;
+  String subText;
+  int subSize;
+  fetchStatus(mainText, mainSize, subText, subSize);
   String updateDateTime = getUpdateDateTimeString();
 
-  drawStatus(statusText, updateDateTime);
+  drawStatus(mainText, mainSize, subText, subSize, updateDateTime);
   shutdownDevice();
 }
 
@@ -97,15 +107,19 @@ void loop()
   // loop will not be reached due to Deep Sleep
 }
 
-String fetchStatus()
+void fetchStatus(String &mainText, int &mainSize, String &subText, int &subSize)
 {
+  mainText = "Error";
+  mainSize = 8;
+  subText = "";
+  subSize = 4;
+
   HTTPClient http;
   // setFollowRedirects is required because GAS URLs are often redirected
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.begin(GAS_URL);
 
   int httpCode = http.GET();
-  String result = "Error";
 
   if (httpCode == HTTP_CODE_OK)
   {
@@ -115,12 +129,30 @@ String fetchStatus()
     DeserializationError error = deserializeJson(doc, payload);
     if (!error)
     {
-      const char *status = doc["status"];
-      result = String(status);
+      if (doc["main"].is<JsonObject>())
+      {
+        JsonObject mainObj = doc["main"];
+        const char *mainTextVal = mainObj["text"] | "Error";
+        mainText = String(mainTextVal);
+        mainSize = mainObj["size"] | 8;
+      }
+      else
+      {
+        // Backward compatibility: accept old payload with `status` only.
+        const char *status = doc["status"] | "Error";
+        mainText = String(status);
+      }
+
+      if (doc["sub"].is<JsonObject>())
+      {
+        JsonObject subObj = doc["sub"];
+        const char *subTextVal = subObj["text"] | "";
+        subText = String(subTextVal);
+        subSize = subObj["size"] | 4;
+      }
     }
   }
   http.end();
-  return result;
 }
 
 String getUpdateDateTimeString()
@@ -137,7 +169,7 @@ String getUpdateDateTimeString()
   return String("Unknown");
 }
 
-void drawStatus(String text, String updateDateTime)
+void drawStatus(String mainText, int mainSize, String subText, int subSize, String updateDateTime)
 {
   M5.Display.startWrite();
   M5.Display.clear(TFT_WHITE); // Fill with white
@@ -145,15 +177,39 @@ void drawStatus(String text, String updateDateTime)
 
   int x = M5.Display.width() / 2;
   int y = M5.Display.height() / 2;
+  int subGap = 24;
+  int safeMainSize = mainSize > 0 ? mainSize : 8;
+  int safeSubSize = subSize > 0 ? subSize : 4;
+  bool hasSub = subText.length() > 0;
 
   M5.Display.setTextDatum(middle_center);
-  M5.Display.setTextSize(8);
-  M5.Display.drawString(text, x, y);
+  M5.Display.setTextSize(safeMainSize);
+  int mainHeight = M5.Display.fontHeight();
+
+  int subHeight = 0;
+  if (hasSub)
+  {
+    M5.Display.setTextSize(safeSubSize);
+    subHeight = M5.Display.fontHeight();
+  }
+
+  int totalHeight = mainHeight + (hasSub ? (subGap + subHeight) : 0);
+  int topY = y - (totalHeight / 2);
+  int mainY = topY + (mainHeight / 2);
+
+  M5.Display.setTextSize(safeMainSize);
+  M5.Display.drawString(mainText, x, mainY);
+
+  if (hasSub)
+  {
+    int subY = topY + mainHeight + subGap + (subHeight / 2);
+    M5.Display.setTextSize(safeSubSize);
+    M5.Display.drawString(subText, x, subY);
+  }
 
   drawFooter(updateDateTime);
 
   M5.Display.endWrite();
-
 }
 
 void drawFooter(String updateDateTime)

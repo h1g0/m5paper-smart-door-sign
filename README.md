@@ -1,5 +1,7 @@
 # M5Paper-Smart-Door-Sign
 
+![Running the code from this repository on an M5PaperS3 and displaying "Meeting In Progress".](img/smart_door_sign.png)
+
 An ultra-low power, E-ink room status display for your home office. Remotely update your "Do Not Disturb" or "In a Meeting" status via Google Sheets.
 
 ## Features
@@ -17,7 +19,7 @@ An ultra-low power, E-ink room status display for your home office. Remotely upd
 
 ## System Architecture
 
-1. **Google Sheets:** Acts as the controller. Simply type your status in a cell.
+1. **Google Sheets:** Acts as the controller. Manage main/sub text and size in a small table.
 2. **Google Apps Script (GAS):** Serves the status as a JSON API.
 3. **M5Paper:** Wakes up periodically, fetches the JSON via Wi-Fi, updates the E-ink screen, and goes back to sleep.
 
@@ -26,10 +28,19 @@ An ultra-low power, E-ink room status display for your home office. Remotely upd
 ### 1. Google Apps Script Setup
 
 1. Create a new **Google Sheet**.
-2. Type your status (e.g., `In a Meeting`) in cell **A1**.
-3. Go to `Extensions` > `Apps Script` and paste the code from `gas/code.gs`.
+2. Create a table in **A1:C3** following the format below.
+3. Go to `Extensions` > `Apps Script` and paste the code from `gas/gas.gs`.
 4. Deploy as a **Web App** and set access to **"Anyone"**.
 5. Copy the provided **Web App URL**.
+
+#### Table format
+
+|      | text | size |
+|:-----|:-----|:-----|
+| main |      |      |
+| sub  |      |      |
+
+![Place a table like this in the designated area of the spreadsheet.](img/table.png)
 
 ### 2. Firmware Setup
 
@@ -61,10 +72,20 @@ const int SLEEP_MIN = 10;
 ## Usage
 
 * The display will update every `SLEEP_MIN` minutes.
-* To change the message, simply edit cell **A1** in your Google Sheet.
+* To change the message, edit the `main` / `sub` rows in your Google Sheet (`text` and `size` columns) .
 * The device uses `M5.Power.timerSleep()` to minimize power consumption between updates.
-* Touch the "off" button in the top-right corner within 10 seconds of powering on or screen update to enter indefinite power-off mode.
+* The "off" button in the top-right corner is shown only on the Wi-Fi connection screen.
+* During the Wi-Fi connection screen (up to 10 seconds, with a minimum 1-second display), touch "off" to enter indefinite power-off mode.
   * To restart the device, press the power button on the M5Paper.
+
+### Table example
+
+|      | text        | size |
+|:-----|:------------|:-----|
+| main | Meeting     | 8    |
+| sub  | In Progress | 4    |
+
+![Enter text and numbers into the table in the created spreadsheet like this.](img/table-example.png)
 
 ## License
 
