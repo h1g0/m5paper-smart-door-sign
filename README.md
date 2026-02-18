@@ -1,5 +1,7 @@
 # M5Paper-Smart-Door-Sign
 
+[日本語版はこちら](README.ja.md)
+
 ![Running the code from this repository on an M5PaperS3 and displaying "Meeting In Progress".](img/smart_door_sign.png)
 
 An ultra-low power, E-ink room status display for your home office. Remotely update your "Do Not Disturb" or "In a Meeting" status via Google Sheets.
