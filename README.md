@@ -89,6 +89,3 @@ const int SLEEP_MIN = 10;
 
 ![Enter text and numbers into the table in the created spreadsheet like this.](img/table-example.png)
 
-## License
-
-MIT License
